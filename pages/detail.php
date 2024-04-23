@@ -3,7 +3,7 @@
 <?php
 session_start();
 include('../components/koneksi.php');
-include('../pages/spkMoora.php');
+include('../pages/spkSmart.php');
 ?>
 
 <head>
@@ -132,7 +132,7 @@ include('../pages/spkMoora.php');
                                 <tr>
                                     <td class="text-center"><?php echo ($no) ?></td>
                                     <?php foreach ($row as $column) { ?>
-                                        <td class="text-center"><?php echo (is_array($column) && isset($column['skala_nilai']) ? number_format($column['skala_nilai'], 2) . "($column[jenis])" : $column) ?></td>
+                                        <td class="text-center"><?php echo (is_array($column) && isset($column['skala_nilai']) ? number_format($column['skala_nilai'], 2) . "(" . ucfirst($column['jenis']) . ")" : $column) ?></td>
                                     <?php } ?>
                                 </tr>
                             <?php $no++;

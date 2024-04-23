@@ -15,10 +15,12 @@ function PembentukanMatriks($koneksi)
       $id_kriteria = $kriteria['id'];
       $id_alternatif = $row['id'];
       $nilai_query = mysqli_query($koneksi, "SELECT nilai_alternatif.*, subkriteria.skala_nilai FROM nilai_alternatif 
-                                        JOIN subkriteria ON nilai_alternatif.id_subkriteria = subkriteria.id 
-                                        WHERE nilai_alternatif.id_kriteria = $id_kriteria AND nilai_alternatif.id_alternatif = $id_alternatif") or die(mysqli_error($koneksi));
+                          JOIN subkriteria ON nilai_alternatif.id_subkriteria = subkriteria.id 
+                          WHERE nilai_alternatif.id_kriteria = $id_kriteria AND nilai_alternatif.id_alternatif = $id_alternatif") or die(mysqli_error($koneksi));
+      $max_min_query = mysqli_query($koneksi, "SELECT MAX(skala_nilai) as skala_maksimum, MIN(skala_nilai) as skala_minimum FROM subkriteria WHERE id_kriteria = $id_kriteria") or die(mysqli_error($koneksi));
+      $max_min = mysqli_fetch_array($max_min_query);
       while ($nilai = mysqli_fetch_array($nilai_query)) {
-        $matriks[$no][] = array("skala_nilai" => $nilai['skala_nilai'], "jenis" => $kriteria['jenis']);
+        $matriks[$no][] = array("skala_nilai" => $nilai['skala_nilai'], "jenis" => $kriteria['jenis'], "skala_maksimum" => $max_min['skala_maksimum'], "skala_minimum" => $max_min['skala_minimum']);
       }
     }
     $no++;
@@ -35,7 +37,12 @@ function matriksNormalisasi($koneksi)
     $matriksNormalisasi[$i][1] = $matriks[$i][1]; // nama
     for ($j = 2; $j < count($matriks[$i]); $j++) {
       // Mencari nilai utility
-      $matriksNormalisasi[$i][$j] = array('skala_nilai' => 100 * ((100 - $matriks[$i][$j]['skala_nilai']) / (100 - 0)), 'jenis' => $matriks[$i][$j]['jenis']);
+      if ($matriks[$i][$j]['jenis'] == 'benefit') {
+        $matriksNormalisasi[$i][$j] = array('skala_nilai' => (($matriks[$i][$j]['skala_nilai'] - $matriks[$i][$j]['skala_minimum']) / ($matriks[$i][$j]['skala_maksimum'] - $matriks[$i][$j]['skala_minimum'])), 'jenis' => $matriks[$i][$j]['jenis']);
+      } else {
+        $matriksNormalisasi[$i][$j] = array('skala_nilai' => (($matriks[$i][$j]['skala_maksimum'] - $matriks[$i][$j]['skala_nilai']) / ($matriks[$i][$j]['skala_maksimum'] - $matriks[$i][$j]['skala_minimum'])), 'jenis' => $matriks[$i][$j]['jenis']);
+      }
+      // ket : 5 dan 3 adalah skala nilai maksimal dan minimal
     }
   }
   return $matriksNormalisasi;
@@ -55,19 +62,14 @@ function MatriksNormalisasiTerbobot($koneksi)
     $matriksNormalisasiTerbobot[$i][0] = $matriksNormalisasi[$i][0]; // kode
     $matriksNormalisasiTerbobot[$i][1] = $matriksNormalisasi[$i][1]; // nama
     $bobotKe = 0;
-    $matriksBenefit = array();
-    $matriksCost = array();
+    $nilaiAkhir = array();
     for ($j = 2; $j < count($matriksNormalisasi[$i]); $j++) {
       $matriksNormalisasiTerbobot[$i][$j]['skala_nilai'] = (float)$matriksNormalisasi[$i][$j]['skala_nilai'] * ($bobot[$bobotKe] / 100);
       $matriksNormalisasiTerbobot[$i][$j]['jenis'] = $matriksNormalisasi[$i][$j]['jenis'];
-      if ($matriksNormalisasi[$i][$j]['jenis'] == 'benefit') {
-        $matriksBenefit[] = $matriksNormalisasiTerbobot[$i][$j]['skala_nilai'];
-      } else {
-        $matriksCost[] = $matriksNormalisasiTerbobot[$i][$j]['skala_nilai'];
-      }
+      $nilaiAkhir[] = $matriksNormalisasiTerbobot[$i][$j]['skala_nilai'];
       $bobotKe++;
     }
-    $matriksNormalisasiTerbobot[$i][count($matriksNormalisasi[$i])]['skala_nilai'] = array_sum($matriksBenefit) - array_sum($matriksCost);
+    $matriksNormalisasiTerbobot[$i][count($matriksNormalisasi[$i])]['skala_nilai'] = array_sum($nilaiAkhir);
     $matriksNormalisasiTerbobot[$i][count($matriksNormalisasi[$i])]['jenis'] = 'nilai_y';
   }
 

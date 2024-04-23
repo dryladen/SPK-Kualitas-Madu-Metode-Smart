@@ -2,7 +2,7 @@
 	$server= "localhost";
 	$username="root";
 	$password="";
-	$database="spk_pegawai_tetap";
+	$database="spk_kualitas_madu";
 	$koneksi = mysqli_connect($server,$username,$password,$database);
 
 
